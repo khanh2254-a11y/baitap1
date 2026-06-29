@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Tập Trắc Nghiệm Phương Trình Lượng Giác Cơ Bản</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .setup-zone, .timer-zone {
+            background: #eef2f3;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .timer-zone {
+            font-size: 20px;
+            font-weight: bold;
+            color: #c0392b;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            text-align: center;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.btn-success { background-color: #2ecc71; }
+        button.btn-success:hover { background-color: #27ae60; }
+        button.btn-warning { background-color: #e67e22; }
+        button.btn-warning:hover { background-color: #d35400; }
+        
+        .quiz-item {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed #eee;
+        }
+        .question {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2980b9;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media(max-width: 600px) {
+            .options { grid-template-columns: 1fr; }
+        }
+        .option-label {
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-label:hover {
+            background: #f0f0f0;
+        }
+        .option-label input {
+            margin-right: 10px;
+        }
+        .explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: #edf7ed;
+            border-left: 5px solid #4caf50;
+            border-radius: 4px;
+            display: none;
+        }
+        .wrong-ans { background: #fdecea; border-left: 5px solid #f44336; }
+        .correct-ans { background: #e8f5e9; border-left: 5px solid #4caf50; }
+        
+        .result-zone {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>BÀI TẬP PHƯƠNG TRÌNH LƯỢNG GIÁC CƠ BẢN</h1>
+    
+    <div id="setup" class="setup-zone">
+        <label for="duration">Nhập thời gian làm bài (phút): </label>
+        <input type="number" id="duration" value="15" min="1" max="180">
+        <br><br>
+        <button onclick="startQuiz()">Bắt đầu làm bài</button>
+        <button class="btn-warning" onclick="generateNewQuiz()">Tự sinh đề bài mới</button>
+    </div>
+
+    <div id="timerDisplay" class="timer-zone" style="display: none;">
+        Thời gian còn lại: <span id="time">00:00</span>
+    </div>
+
+    <div id="quiz-container">
+        </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button id="submitBtn" class="btn-success" onclick="submitQuiz()" style="display: none;">Nộp bài</button>
+    </div>
+    <div id="result" class="result-zone"></div>
+</div>
+
+<script>
+    // Ngân hàng dữ liệu câu hỏi gốc cố định (10 câu cơ bản mẫu)
+    const originalQuestions = [
+        {
+            q: "Giải phương trình: sin(x) = 1/2",
+            options: [
+                "x = π/6 + k2π hoặc x = 5π/6 + k2π",
+                "x = π/3 + k2π hoặc x = 2π/3 + k2π",
+                "x = ±π/6 + k2π",
+                "x = π/6 + kπ hoặc x = 5π/6 + kπ"
+            ],
+            correct: 0,
+            explain: "Ta có sin(x) = 1/2 = sin(π/6). Theo công thức nghiệm của sin: x = π/6 + k2π hoặc x = π - π/6 + k2π = 5π/6 + k2π (k thuộc Z)."
+        },
+        {
+            q: "Giải phương trình: cos(x) = -√2/2",
+            options: [
+                "x = ±π/4 + k2π",
+                "x = ±3π/4 + k2π",
+                "x = ±3π/4 + kπ",
+                "x = 3π/4 + k2π hoặc x = -π/4 + k2π"
+            ],
+            correct: 1,
+            explain: "Ta có cos(x) = -√2/2 = cos(3π/4). Theo công thức nghiệm của cos: x = ±33π/4 + k2π (k thuộc Z)."
+        },
+        {
+            q: "Tìm nghiệm của phương trình: tan(x) = √3",
+            options: [
+                "x = π/3 + k2π",
+                "x = π/6 + kπ",
+                "x = π/3 + kπ",
+                "x = ±π/3 + kπ"
+            ],
+            correct: 2,
+            explain: "Điều kiện xác định: x ≠ π/2 + kπ. Ta có tan(x) = √3 = tan(π/3). Thỏa mãn điều kiện, nghiệm là x = π/3 + kπ (k thuộc Z)."
+        },
+        {
+            q: "Giải phương trình: cot(x) = 0",
+            options: [
+                "x = kπ",
+                "x = π/2 + kπ",
+                "x = π/2 + k2π",
+                "x = k2π"
+            ],
+            correct: 1,
+            explain: "Điều kiện xác định: x ≠ kπ. Ta có cot(x) = 0 <=> cos(x) = 0 <=> x = π/2 + kπ (k thuộc Z). Nghiệm này thỏa mãn điều kiện."
+        },
+        {
+            q: "Phương trình sin(x) = m có nghiệm khi và chỉ khi giá trị của m thỏa mãn:",
+            options: [
+                "m ≥ -1",
+                "m ≤ 1",
+                "-1 ≤ m ≤ 1",
+                "m ∈ R"
+            ],
+            correct: 2,
+            explain: "Vì tập giá trị của hàm số y = sin(x) là [-1; 1], nên phương trình sin(x) = m có nghiệm khi và chỉ khi -1 ≤ m ≤ 1."
+        },
+        {
+            q: "Giải phương trình: cos(2x) = 1",
+            options: [
+                "x = k2π",
+                "x = kπ",
+                "x = π/2 + kπ",
+                "x = π/4 + kπ"
+            ],
+            correct: 1,
+            explain: "Ta có cos(2x) = 1 <=> 2x = k2π <=> x = kπ (k thuộc Z)."
+        },
+        {
+            q: "Giải phương trình: sin(x + π/4) = 0",
+            options: [
+                "x = -π/4 + kπ",
+                "x = -π/4 + k2π",
+                "x = π/4 + kπ",
+                "x = 3π/4 + kπ"
+            ],
+            correct: 0,
+            explain: "Phương trình <=> x + π/4 = kπ <=> x = -π/4 + kπ (k thuộc Z)."
+        },
+        {
+            q: "Số nghiệm của phương trình sin(x) = 0 trên đoạn [0; 2π] là:",
+            options: [
+                "2",
+                "3",
+                "4",
+                "1"
+            ],
+            correct: 1,
+            explain: "sin(x) = 0 <=> x = kπ. Trên đoạn [0; 2π], các giá trị k thỏa mãn là k=0 (x=0), k=1 (x=π), k=2 (x=2π). Vậy có tất cả 3 nghiệm."
+        },
+        {
+            q: "Giải phương trình: tan(x - π/6) = -√3/3",
+            options: [
+                "x = kπ",
+                "x = π/3 + kπ",
+                "x = -π/6 + kπ",
+                "x = π/6 + kπ"
+            ],
+            correct: 0,
+            explain: "Ta có -√3/3 = tan(-π/6). Phương trình <=> x - π/6 = -π/6 + kπ <=> x = kπ (k thuộc Z)."
+        },
+        {
+            q: "Tìm nghiệm của phương trình: cos(x) = 0",
+            options: [
+                "x = kπ",
+                "x = k2π",
+                "x = π/2 + k2π",
+                "x = π/2 + kπ"
+            ],
+            correct: 3,
+            explain: "Đây là trường hợp đặc biệt của phương trình bậc nhất với cos: cos(x) = 0 <=> x = π/2 + kπ (k thuộc Z)."
+        }
+    ];
+
+    let currentQuestions = [...originalQuestions];
+    let timer;
+    let totalSeconds = 0;
+
+    // Hàm render danh sách câu hỏi ra màn hình
+    function renderQuiz(questionsList) {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = '';
+        questionsList.forEach((item, index) => {
+            const quizItem = document.createElement('div');
+            quizItem.className = 'quiz-item';
+            quizItem.id = `question-${index}`;
+            
+            let optionsHtml = '';
+            item.options.forEach((opt, optIdx) => {
+                const label = String.fromCharCode(65 + optIdx); // A, B, C, D
+                optionsHtml += `
+                    <label class="option-label">
+                        <input type="radio" name="q-${index}" value="${optIdx}">
+                        <strong>${label}.</strong> ${opt}
+                    </label>
+                `;
+            });
+
+            quizItem.innerHTML = `
+                <div class="question">Câu ${index + 1}: ${item.q}</div>
+                <div class="options">${optionsHtml}</div>
+                <div class="explanation" id="explain-${index}">
+                    <strong>Lời giải chi tiết:</strong> ${item.explain}
+                </div>
+            `;
+            container.appendChild(quizItem);
+        });
+    }
+
+    // Khởi tạo bài thi đầu tiên khi tải trang
+    window.onload = function() {
+        renderQuiz(currentQuestions);
+    };
+
+    // Hàm đếm ngược thời gian
+    function startQuiz() {
+        const durationInput = document.getElementById('duration').value;
+        if (durationInput <= 0) {
+            alert("Vui lòng nhập thời gian hợp lệ lớn hơn 0 phút!");
+            return;
+        }
+        totalSeconds = durationInput * 60;
+        
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('timerDisplay').style.display = 'block';
+        document.getElementById('submitBtn').style.display = 'inline-block';
+        
+        // Reset lựa chọn và ẩn giải thích từ lần chơi trước (nếu có)
+        renderQuiz(currentQuestions);
+        document.getElementById('result').innerText = '';
+
+        timer = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        
+        document.getElementById('time').innerText = 
+            `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        
+        if (totalSeconds <= 0) {
+            clearInterval(timer);
+            alert("Hết giờ làm bài! Hệ thống tự động nộp bài.");
+            submitQuiz();
+        }
+        totalSeconds--;
+    }
+
+    // Hàm chấm điểm, hiển thị đáp án và lời giải chi tiết
+    function submitQuiz() {
+        clearInterval(timer);
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('setup').style.display = 'block'; // Hiện lại thanh điều hướng để sinh đề mới nếu muốn
+
+        let score = 0;
+        currentQuestions.forEach((item, index) => {
+            const selectedOpt = document.querySelector(`input[name="q-${index}"]:checked`);
+            const explainDiv = document.getElementById(`explain-${index}`);
+            const labels = document.querySelectorAll(`#question-${index} .option-label`);
+            
+            explainDiv.style.display = 'block'; // Hiển thị lời giải
+
+            // Đánh dấu đúng sai trên các nhãn phương án
+            labels.forEach((label, optIdx) => {
+                if (optIdx === item.correct) {
+                    label.classList.add('correct-ans'); // Phương án đúng màu xanh
+                }
+            });
+
+            if (selectedOpt) {
+                const userAns = parseInt(selectedOpt.value);
+                if (userAns === item.correct) {
+                    score++;
+                } else {
+                    labels[userAns].classList.add('wrong-ans'); // Phương án chọn sai màu đỏ
+                }
+            }
+        });
+
+        document.getElementById('result').innerText = `Kết quả: Chúc mừng bạn đã hoàn thành! Đúng ${score}/${currentQuestions.length} câu.`;
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    // CHỨC NĂNG NÂNG CAO: TỰ ĐỘNG SINH ĐỀ BÀI TƯƠNG TỰ BẰNG THUẬT TOÁN ĐỔI SỐ
+    function generateNewQuiz() {
+        const randomValuesSinCos = [
+            {val: "1/2", angleSin: "π/6", angleCos: "π/3"},
+            {val: "-1/2", angleSin: "-π/6", angleCos: "2π/3"},
+            {val: "√3/2", angleSin: "π/3", angleCos: "π/6"},
+            {val: "-√3/2", angleSin: "-π/3", angleCos: "5π/6"},
+            {val: "√2/2", angleSin: "π/4", angleCos: "π/4"},
+            {val: "-√2/2", angleSin: "-π/4", angleCos: "3π/4"}
+        ];
+
+        const randomValuesTanCot = [
+            {val: "√3", angleTan: "π/3", angleCot: "π/6"},
+            {val: "1", angleTan: "π/4", angleCot: "π/4"},
+            {val: "√3/3", angleTan: "π/6", angleCot: "π/3"},
+            {val: "0", angleTan: "0", angleCot: "π/2"},
+            {val: "-1", angleTan: "-π/4", angleCot: "3π/4"}
+        ];
+
+        const newQuestions = [];
+
+        // Câu 1 (Sinh ngẫu nhiên sin)
+        let r1 = randomValuesSinCos[Math.floor(Math.random() * randomValuesSinCos.length)];
+        let piMinus = r1.angleSin.startsWith('-') ? `5π/6` : `5π/6`; // đơn giản hóa minh họa
+        newQuestions.push({
+            q: `Giải phương trình: sin(x) = ${r1.val}`,
+            options: [
+                `x = ${r1.angleSin} + k2π hoặc x = (π - ${r1.angleSin}) + k2π`,
+                `x = ${r1.angleCos} + k2π hoặc x = -${r1.angleCos} + k2π`,
+                `x = ± ${r1.angleSin} + k2π`,
+                `Vô nghiệm`
+            ],
+            correct: 0,
+            explain: `Áp dụng công thức nghiệm cơ bản của hàm sin, với sin(x) = sin(α) <=> x = α + k2π hoặc x = π - α + k2π.`
+        });
+
+        // Câu 2 (Sinh ngẫu nhiên cos)
+        let r2 = randomValuesSinCos[Math.floor(Math.random() * randomValuesSinCos.length)];
+        newQuestions.push({
+            q: `Giải phương trình: cos(x) = ${r2.val}`,
+            options: [
+                `x = ${r2.angleSin} + k2π hoặc x = π - ${r2.angleSin} + k2π`,
+                `x = ± ${r2.angleCos} + k2π`,
+                `x = ${r2.angleCos} + kπ`,
+                `Vô nghiệm`
+            ],
+            correct: 1,
+            explain: `Áp dụng công thức nghiệm cơ bản của hàm cos, với cos(x) = cos(α) <=> x = ±α + k2π.`
+        });
+
+        // Câu 3 (Sinh ngẫu nhiên tan)
+        let r3 = randomValuesTanCot[Math.floor(Math.random() * randomValuesTanCot.length)];
+        newQuestions.push({
+            q: `Tìm nghiệm của phương trình: tan(x) = ${r3.val}`,
+            options: [
+                `x = ${r3.angleTan} + k2π`,
+                `x = ±${r3.angleTan} + kπ`,
+                `x = ${r3.angleTan} + kπ`,
+                `Vô nghiệm`
+            ],
+            correct: 2,
+            explain: `Hàm tan có chu kỳ là π, do đó phương trình tan(x) = tan(α) <=> x = α + kπ.`
+        });
+
+        // Các câu lý thuyết và đặc biệt khác giữ nguyên cấu trúc toán học nhưng xáo trộn vị trí hoặc thay đổi nhẹ hệ số:
+        let randomK = Math.floor(Math.random() * 4) + 2; // Sinh số ngẫu nhiên từ 2 đến 5
+        newQuestions.push({
+            q: `Giải phương trình đặc biệt: cos(${randomK}x) = 1`,
+            options: [
+                `x = k2π`,
+                `x = k2π / ${randomK}`,
+                `x = π / ${randomK} + k2π`,
+                `x = kπ`
+            ],
+            correct: 1,
+            explain: `Ta có cos(${randomK}x) = 1 <=> ${randomK}x = k2π <=> x = k2π / ${randomK} (k thuộc Z).`
+        });
+
+        // Trộn thêm 6 câu khác dựa vào bộ mẫu ban đầu để đủ 10 câu
+        for (let i = 4; i < 10; i++) {
+            newQuestions.push(originalQuestions[i]);
+        }
+
+        currentQuestions = newQuestions;
+        renderQuiz(currentQuestions);
+        alert("Đã tự động sinh bộ câu hỏi mới thành công! Nhấp 'Bắt đầu làm bài' để thử thách.");
+    }
+</script>
+
+</body>
+</html>
